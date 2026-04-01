@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 app = Flask(__name__)
 
-# 2. API KEYS
+# 2. API KEYS CONFIGURATION (Zingatia kuweka hizi kule Render)
 GEMINI_KEY = os.environ.get("GEMINI_KEY")
 GROQ_KEY = os.environ.get("GROQ_KEY")
 
@@ -19,7 +19,7 @@ if GEMINI_KEY:
 
 def analyze_image(prompt, image_base64):
     try:
-        model = genai.Generative_Model('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         image_data = base64.b64decode(image_base64)
         image = Image.open(io.BytesIO(image_data))
         p = f"Wewe ni Brain AI Pro ya William Richard. Jibu kwa Kiswahili: {prompt if prompt else 'Nieleze picha hii'}"
@@ -27,7 +27,7 @@ def analyze_image(prompt, image_base64):
     except Exception as e:
         return f"Hitilafu ya Picha: {str(e)}"
 
-# --- HTML CODE (LONG VERSION: 180+ LINES RECONSTRUCTED) ---
+# --- HTML/CSS/JS CODE (NO PASSWORD - FULL FEATURES) ---
 HTML_CODE = '''
 <!DOCTYPE html>
 <html lang="sw">
@@ -61,29 +61,7 @@ HTML_CODE = '''
             overflow: hidden; transition: background 0.3s ease; 
         }
 
-        /* LOGIN OVERLAY CSS */
-        #login-overlay { 
-            position: fixed; inset: 0; background: var(--header-bg); 
-            z-index: 9999; display: flex; align-items: center; justify-content: center; 
-        }
-        .login-card { 
-            background: white; padding: 40px; border-radius: 25px; 
-            text-align: center; width: 85%; max-width: 400px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
-        }
-        .login-card h2 { font-family: 'Dancing Script'; font-size: 35px; color: var(--header-bg); margin-bottom: 10px; }
-        .login-card input { 
-            width: 100%; padding: 15px; margin: 20px 0; 
-            border: 2px solid var(--green); border-radius: 12px; 
-            font-size: 25px; text-align: center; letter-spacing: 8px; outline: none;
-        }
-        .login-card button { 
-            background: var(--header-bg); color: white; border: none; 
-            padding: 15px; width: 100%; border-radius: 12px; 
-            font-weight: 600; cursor: pointer; transition: 0.3s;
-        }
-
-        /* SIDEBARS */
+        /* HEADER */
         .header { 
             padding: 15px 20px; display: flex; align-items: center; 
             justify-content: space-between; background: var(--white); 
@@ -91,6 +69,7 @@ HTML_CODE = '''
             top: 0; width: 100%; box-sizing: border-box; z-index: 1000; 
         }
         
+        /* SIDEBARS */
         .sidebar { 
             height: 100%; width: 0; position: fixed; z-index: 5000; 
             top: 0; background: var(--white); overflow-x: hidden; 
@@ -104,7 +83,7 @@ HTML_CODE = '''
         .sidebar a, .sidebar button { 
             padding: 15px 25px; text-decoration: none; font-size: 16px; 
             color: var(--text); display: block; border-bottom: 1px solid var(--border); 
-            background: none; border-left: none; border-right: none; width: 100%; text-align: left; cursor: pointer;
+            background: none; border: none; width: 100%; text-align: left; cursor: pointer;
         }
 
         /* CHAT AREA */
@@ -151,29 +130,18 @@ HTML_CODE = '''
             background: transparent; color: var(--text); padding: 10px 0;
         }
         .icon-btn { color: var(--green); font-size: 26px; cursor: pointer; transition: 0.2s; }
-        .icon-btn:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
-
-    <div id="login-overlay">
-        <div class="login-card">
-            <h2>Brain AI Pro</h2>
-            <p style="color: #666;">Salama William! Ingiza Saa & Dakika za sasa ili uingie:</p>
-            <input type="number" id="sys_pass" placeholder="----">
-            <button onclick="verifyPass()">INGIA KWENYE MFUMO</button>
-            <p style="font-size: 11px; margin-top: 15px; color: #999;">Mfumo wa ulinzi wa William Richard Mathayo &copy; 2026</p>
-        </div>
-    </div>
 
     <div id="leftNav" class="sidebar left">
         <div class="sidebar-header">
             <h3 style="color:var(--green); margin:0;">Memory</h3>
             <span onclick="closeNav('leftNav')" style="font-size:30px; cursor:pointer;">&times;</span>
         </div>
-        <a onclick="location.reload()"><i class="fas fa-sync"></i> Safisha Ukurasa</a>
+        <a onclick="location.reload()"><i class="fas fa-sync"></i> Refresh App</a>
         <div id="memory-list"></div>
-        <a onclick="clearMemory()" style="color:#e74c3c; margin-top:30px;"><i class="fas fa-trash-alt"></i> Futa Kumbukumbu Zote</a>
+        <a onclick="clearMemory()" style="color:#e74c3c; margin-top:30px;"><i class="fas fa-trash-alt"></i> Futa Kumbukumbu</a>
     </div>
 
     <div id="rightNav" class="sidebar right">
@@ -181,12 +149,11 @@ HTML_CODE = '''
             <h3 style="color:var(--green); margin:0;">Settings</h3>
             <span onclick="closeNav('rightNav')" style="font-size:30px; cursor:pointer;">&times;</span>
         </div>
-        <button onclick="toggleDarkMode()"><i class="fas fa-adjust"></i> Badili Rangi (Dark/Light)</button>
-        <button onclick="toggleCanvas()"><i class="fas fa-paint-brush"></i> Chora Michoro ya Umeme</button>
-        <button onclick="window.print()"><i class="fas fa-print"></i> Pakua Mazungumzo (PDF)</button>
+        <button onclick="toggleDarkMode()"><i class="fas fa-adjust"></i> Dark Mode</button>
+        <button onclick="toggleCanvas()"><i class="fas fa-paint-brush"></i> Chora Michoro</button>
         <div style="padding: 25px; font-size: 12px; color: #888;">
-            <p>Model: Gemini 1.5 + Groq Llama 3</p>
             <p>Developer: William Richard</p>
+            <p>PWA: Supported</p>
         </div>
     </div>
 
@@ -199,7 +166,7 @@ HTML_CODE = '''
     <div id="main-view">
         <div id="welcome-screen">
             <h1>William Richard</h1>
-            <p>Karibu kwenye akili mnemba yenye uwezo wa picha na sauti.</p>
+            <p>Mfumo umewashwa. Uliza chochote sasa.</p>
         </div>
 
         <div id="drawing-container">
@@ -210,7 +177,7 @@ HTML_CODE = '''
             </div>
         </div>
 
-        <div id="chat-container" style="display: flex; flex-direction: column;"></div>
+        <div id="chat-container"></div>
     </div>
 
     <div class="footer">
@@ -218,7 +185,7 @@ HTML_CODE = '''
             <label for="file-input"><i class="fas fa-image icon-btn"></i></label>
             <input type="file" id="file-input" accept="image/*" hidden onchange="handleImage()">
             
-            <input type="text" id="userInput" placeholder="Andika ujumbe hapa..." onkeypress="if(event.keyCode==13) sendMsg()">
+            <input type="text" id="userInput" placeholder="Andika hapa..." onkeypress="if(event.keyCode==13) sendMsg()">
             
             <i class="fas fa-microphone icon-btn" id="mic-btn" onclick="startVoice()"></i>
             <i class="fas fa-paper-plane icon-btn" onclick="sendMsg()"></i>
@@ -226,56 +193,36 @@ HTML_CODE = '''
     </div>
 
     <script>
-        // --- LOGIC YA ULINZI (PASSWORD) ---
-        function verifyPass() {
-            let sasa = new Date();
-            let saa = sasa.getHours().toString().padStart(2, '0');
-            let dakika = sasa.getMinutes().toString().padStart(2, '0');
-            let jibu = saa + dakika; // Mfano 0830
-            
-            if(document.getElementById('sys_pass').value === jibu) {
-                document.getElementById('login-overlay').style.opacity = '0';
-                setTimeout(() => { 
-                    document.getElementById('login-overlay').style.display = 'none'; 
-                    loadMemory(); 
-                }, 500);
-            } else {
-                alert("Password siyo sahihi! Angalia saa na dakika za sasa hivi kwenye simu yako.");
-            }
-        }
+        // --- AUTO LOAD ---
+        window.onload = loadMemory;
 
-        // --- NAVIGATION ---
         function openNav(id) { document.getElementById(id).style.width = "300px"; }
         function closeNav(id) { document.getElementById(id).style.width = "0"; }
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 
-        // --- MEMORY / HISTORY SYSTEM ---
+        // --- MEMORY SYSTEM ---
         function saveMemory(role, text) {
-            let m = JSON.parse(localStorage.getItem('brain_pro_memory') || '[]');
-            m.push({role, text, time: new Date().toLocaleTimeString()});
-            localStorage.setItem('brain_pro_memory', JSON.stringify(m));
+            let m = JSON.parse(localStorage.getItem('william_brain_pro_v5') || '[]');
+            m.push({role, text});
+            localStorage.setItem('william_brain_pro_v5', JSON.stringify(m));
             updateMemoryUI();
         }
 
         function loadMemory() {
-            let m = JSON.parse(localStorage.getItem('brain_pro_memory') || '[]');
-            m.forEach(chat => {
-                appendMsg(chat.text, chat.role === 'user' ? 'user-msg' : 'ai-msg');
-            });
+            let m = JSON.parse(localStorage.getItem('william_brain_pro_v5') || '[]');
+            if(m.length > 0) document.getElementById('welcome-screen').style.display = 'none';
+            m.forEach(chat => appendMsg(chat.text, chat.role === 'user' ? 'user-msg' : 'ai-msg'));
             updateMemoryUI();
         }
 
         function updateMemoryUI() {
-            let m = JSON.parse(localStorage.getItem('brain_pro_memory') || '[]');
+            let m = JSON.parse(localStorage.getItem('william_brain_pro_v5') || '[]');
             const list = document.getElementById('memory-list');
-            list.innerHTML = m.slice(-10).map(c => `<a><b>${c.role}:</b> ${c.text.substring(0,20)}...</a>`).join('');
+            list.innerHTML = m.slice(-8).map(c => `<a><b>${c.role}:</b> ${c.text.substring(0,15)}...</a>`).join('');
         }
 
         function clearMemory() {
-            if(confirm("Je, unataka kufuta mazungumzo yote yaliyopita?")) {
-                localStorage.removeItem('brain_pro_memory');
-                location.reload();
-            }
+            if(confirm("Futa kila kitu?")) { localStorage.clear(); location.reload(); }
         }
 
         // --- CHAT LOGIC ---
@@ -296,7 +243,7 @@ HTML_CODE = '''
             const val = input.value.trim();
             if(!val && !base64Image) return;
 
-            appendMsg(val || "Picha imetumwa...", "user-msg");
+            appendMsg(val || "Picha inachambuliwa...", "user-msg");
             saveMemory('user', val || "Alituma picha");
             input.value = "";
 
@@ -310,36 +257,27 @@ HTML_CODE = '''
                 appendMsg(data.ans, "ai-msg");
                 saveMemory('ai', data.ans);
             } catch (e) {
-                appendMsg("Samahani William, kuna hitilafu ya mtandao.", "ai-msg");
+                appendMsg("Hitilafu imetokea!", "ai-msg");
             }
             base64Image = null;
         }
 
-        // --- IMAGE HANDLING ---
+        // --- IMAGE & VOICE & CANVAS SCRIPTS ---
         function handleImage() {
             const file = document.getElementById('file-input').files[0];
             const reader = new FileReader();
-            reader.onload = (e) => {
-                base64Image = e.target.result.split(',')[1];
-                sendMsg();
-            };
+            reader.onload = (e) => { base64Image = e.target.result.split(',')[1]; sendMsg(); };
             reader.readAsDataURL(file);
         }
 
-        // --- VOICE RECOGNITION ---
         function startVoice() {
             const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            rec.lang = 'sw-TZ';
-            rec.start();
+            rec.lang = 'sw-TZ'; rec.start();
             document.getElementById('mic-btn').style.color = 'red';
-            rec.onresult = (e) => {
-                document.getElementById('userInput').value = e.results[0][0].transcript;
-                sendMsg();
-            };
+            rec.onresult = (e) => { document.getElementById('userInput').value = e.results[0][0].transcript; sendMsg(); };
             rec.onend = () => { document.getElementById('mic-btn').style.color = 'var(--green)'; };
         }
 
-        // --- DRAWING CANVAS LOGIC ---
         const canvas = document.getElementById('drawing-canvas');
         const ctx = canvas.getContext('2d');
         let painting = false;
@@ -350,25 +288,16 @@ HTML_CODE = '''
             closeNav('rightNav');
         }
 
-        canvas.addEventListener('mousedown', startDraw);
-        canvas.addEventListener('mouseup', endDraw);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e.touches[0]); });
-        canvas.addEventListener('touchend', endDraw);
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); painting = true; ctx.beginPath(); });
+        canvas.addEventListener('touchmove', (e) => { 
+            if(!painting) return; e.preventDefault();
+            let t = e.touches[0]; let r = canvas.getBoundingClientRect();
+            ctx.lineTo(t.clientX - r.left, t.clientY - r.top);
+            ctx.strokeStyle = '#075e54'; ctx.lineWidth = 4; ctx.stroke();
+        });
+        canvas.addEventListener('touchend', () => { painting = false; ctx.beginPath(); });
 
-        function startDraw(e) { painting = true; draw(e); }
-        function endDraw() { painting = false; ctx.beginPath(); }
-        function draw(e) {
-            if(!painting) return;
-            ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.strokeStyle = '#075e54';
-            const rect = canvas.getBoundingClientRect();
-            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-            ctx.stroke(); ctx.beginPath();
-            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-        }
-
-        function clearCanvas() { ctx.clearRect(0,0,canvas.width,canvas.height); }
+        function clearCanvas() { ctx.clearRect(0,0,320,300); }
         function sendDrawing() {
             base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
             sendMsg(); toggleCanvas(); clearCanvas();
@@ -391,28 +320,20 @@ def chat():
     if img:
         return jsonify({'ans': analyze_image(q, img)})
     
-    # GROQ API INTEGRATION (LLAMA 3.3)
-    headers = {
-        "Authorization": f"Bearer {GROQ_KEY}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": "Wewe ni Brain AI Pro iliyotengenezwa na William Richard Mathayo. Jibu kwa Kiswahili fasaha na uonyeshe utaalamu wako."},
+            {"role": "system", "content": "Wewe ni Brain AI Pro ya William Richard. Jibu kwa Kiswahili."},
             {"role": "user", "content": q}
-        ],
-        "temperature": 0.7
+        ]
     }
     
     try:
         r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=20)
-        response_data = r.json()
-        return jsonify({'ans': response_data['choices'][0]['message']['content']})
+        return jsonify({'ans': r.json()['choices'][0]['message']['content']})
     except:
-        return jsonify({'ans': 'Tafadhali kagua muunganisho wako wa API Keys kwenye Render Environment Variables.'})
+        return jsonify({'ans': 'Kagua API Keys zako kule Render!'})
 
 if __name__ == '__main__':
-    # William, hii itatumia port inayotolewa na Render (Default 5000)
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
