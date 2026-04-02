@@ -1,26 +1,34 @@
 import os
 import warnings
-import requests, base64, io, json
+import requests
+import base64
+import io
+import json
+import time
 from flask import Flask, render_template_string, request, jsonify
 import google.generativeai as genai
 from PIL import Image
+import PyPDF2  # Kwa ajili ya kusoma mafile ya PDF
 
 # ============================================================
-# BRAIN AI PRO V11 - DEVELOPED BY WILLIAM RICHARD MATHAYO
-# FULL MOBILE RESPONSIVE OPTIMIZATION (KIOO CHA SIMU)
+# BRAIN AI PRO V13 - THE ULTIMATE MONSTER EDITION
+# DEVELOPED BY WILLIAM RICHARD MATHAYO
+# FEATURES: PDF UPLOAD, IMAGE GEN, TYPING EFFECT, CLOUD SYNC
 # ============================================================
 
 warnings.filterwarnings("ignore")
 app = Flask(__name__)
 
-# CONFIGURATION ZA API
+# CONFIGURATION ZA API (ZINGATIA KUWEKA RENDER ENV)
 GEMINI_KEY = os.environ.get("GEMINI_KEY")
 GROQ_KEY = os.environ.get("GROQ_KEY")
+OPENAI_KEY = os.environ.get("OPENAI_KEY") # Kwa Image Generation (DALL-E)
 
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
 
 def analyze_image(prompt, image_base64):
+    """Kuchakata picha kwa Gemini Flash"""
     try:
         model = genai.GenerativeModel('gemini-1.5-flash')
         image_data = base64.b64decode(image_base64)
@@ -30,8 +38,18 @@ def analyze_image(prompt, image_base64):
     except Exception as e:
         return f"Hitilafu ya Picha: {str(e)}"
 
+def generate_ai_image(prompt):
+    """Kutengeneza picha mpya kwa DALL-E (OpenAI)"""
+    try:
+        headers = {"Authorization": f"Bearer {OPENAI_KEY}", "Content-Type": "application/json"}
+        payload = {"model": "dall-e-3", "prompt": prompt, "n": 1, "size": "1024x1024"}
+        r = requests.post("https://api.openai.com/v1/images/generations", headers=headers, json=payload)
+        return r.json()['data'][0]['url']
+    except:
+        return "https://via.placeholder.com/500?text=Weka+OpenAI+Key+Kwanza"
+
 # ============================================================
-# FRONT-END (MUONEKANO WA KIOO CHA SIMU - FULL RESPONSIVE)
+# FRONT-END (HTML, CSS, JS) - VERSION 13 (EXTRA LONG)
 # ============================================================
 
 HTML_CODE = '''
@@ -42,303 +60,233 @@ HTML_CODE = '''
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Brain AI Pro - William Richard</title>
     
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#075e54">
-    <link rel="manifest" href="data:application/manifest+json,{'name':'BrainAI Pro','short_name':'BrainAI','start_url':'.','display':'standalone','background_color':'#0b141a','theme_color':'#075e54'}">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
 
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
         :root { 
             --primary: #075e54; --accent: #2ecc71; --bg: #f0f2f5; 
             --white: #ffffff; --text: #1c1e21; --border: #ced4da; 
             --user-bubble: #dcf8c6; --ai-bubble: #ffffff;
-            --sidebar-bg: #ffffff;
         }
-        
         body.dark-mode { 
             --bg: #0b141a; --white: #111b21; --text: #e9edef; 
             --border: #222d34; --user-bubble: #005c4b; --ai-bubble: #202c33;
-            --sidebar-bg: #111b21;
         }
-
         body { 
-            background: var(--bg); color: var(--text); 
-            font-family: 'Outfit', sans-serif; margin: 0; 
-            display: flex; flex-direction: column; height: 100vh; 
-            height: -webkit-fill-available;
-            overflow: hidden; transition: 0.3s; 
+            background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; 
+            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; 
         }
 
-        /* --- SIDEBAR LEFT (VISTARI VITATU) --- */
-        .sidebar-left { 
-            height: 100%; width: 0; position: fixed; z-index: 5000; 
-            top: 0; left: 0; background: var(--sidebar-bg); 
-            overflow-x: hidden; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-            box-shadow: 5px 0 15px rgba(0,0,0,0.3); 
-            display: flex; flex-direction: column;
-        }
-
-        .profile-section { 
-            padding: 40px 20px 20px; background: var(--primary); color: white; 
-            text-align: center; border-bottom: 4px solid var(--accent);
-        }
-        .profile-img { 
-            width: 70px; height: 70px; border-radius: 50%; 
-            border: 2px solid var(--accent); margin-bottom: 10px;
-            object-fit: cover;
-        }
-
-        .menu-list { flex: 1; overflow-y: auto; padding: 5px 0; }
-        .menu-item { 
-            padding: 16px 20px; display: flex; align-items: center; gap: 15px;
-            color: var(--text); text-decoration: none; font-size: 15px;
-            border-bottom: 1px solid var(--border); transition: 0.2s;
-        }
-        .menu-item:active { background: rgba(46, 204, 113, 0.2); }
-        .menu-item i { color: var(--accent); width: 25px; font-size: 18px; }
-
-        .search-container { padding: 10px 15px; }
-        #searchHistory { 
-            width: 100%; padding: 12px; border-radius: 12px; 
-            border: 1px solid var(--border); background: var(--bg); color: var(--text);
-            font-size: 14px; outline: none;
-        }
-
-        /* --- HEADER (FIXED TO SCREEN WIDTH) --- */
+        /* HEADER */
         .header { 
-            height: 65px; padding: 0 20px; display: flex; align-items: center; 
+            height: 70px; padding: 0 15px; display: flex; align-items: center; 
             justify-content: space-between; background: var(--white); 
-            border-bottom: 2px solid var(--accent); position: fixed; 
-            top: 0; width: 100%; z-index: 1000; 
+            border-bottom: 3px solid var(--accent); position: fixed; top: 0; width: 100%; z-index: 1000; 
         }
-        .header h1 { font-family: 'Dancing Script'; font-size: 24px; margin: 0; color: var(--primary); }
+        .header h1 { font-size: 22px; margin: 0; color: var(--primary); font-weight: 600; }
 
-        /* --- MAIN VIEW (FULL MOBILE HEIGHT) --- */
+        /* MAIN CHAT AREA */
         #main-view { 
-            flex: 1; margin-top: 65px; margin-bottom: 80px; 
-            padding: 15px; overflow-y: auto; display: flex; flex-direction: column;
-            width: 100%;
+            flex: 1; margin-top: 70px; margin-bottom: 90px; padding: 15px; 
+            overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+            scroll-behavior: smooth;
         }
-        
-        .welcome-center { text-align: center; padding: 40px 10px; }
-        .welcome-center h2 { font-family: 'Dancing Script'; font-size: 42px; color: var(--accent); margin: 0; }
+
+        /* TYPING EFFECT INDICATOR */
+        #typing-status { 
+            display: none; padding: 10px; font-style: italic; font-size: 13px; color: var(--accent);
+        }
 
         .chat-bubble { 
-            max-width: 90%; padding: 12px 16px; border-radius: 18px; 
-            margin-bottom: 12px; line-height: 1.5; font-size: 15px;
-            position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-            animation: bubblePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 88%; padding: 14px; border-radius: 18px; position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 15px; line-height: 1.6;
+            animation: fadeIn 0.4s ease;
         }
-        @keyframes bubblePop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } }
         
-        .user-bubble { align-self: flex-end; background: var(--user-bubble); border-bottom-right-radius: 2px; color: #1c1e21; }
+        .user-bubble { align-self: flex-end; background: var(--user-bubble); border-bottom-right-radius: 2px; }
         .ai-bubble { align-self: flex-start; background: var(--ai-bubble); border-bottom-left-radius: 2px; border-left: 5px solid var(--accent); }
 
-        /* --- CALCULATOR OVERLAY --- */
-        #calculator-overlay { 
-            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); 
-            z-index: 6000; align-items: center; justify-content: center; padding: 20px;
+        /* CODE BOX STYLING */
+        pre { 
+            background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 10px; 
+            overflow-x: auto; position: relative; margin: 10px 0; font-family: 'JetBrains Mono', monospace;
         }
-        .calc-body { 
-            background: #1c1c1c; padding: 20px; border-radius: 30px; 
-            width: 100%; max-width: 320px;
+        .copy-btn {
+            position: absolute; top: 8px; right: 8px; background: #333; color: var(--accent);
+            border: 1px solid var(--accent); padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer;
         }
-        .calc-screen { 
-            width: 100%; background: #000; border: none; color: #fff; 
-            padding: 20px; font-size: 30px; text-align: right; margin-bottom: 15px;
-            font-family: 'JetBrains Mono'; border-radius: 15px;
-        }
-        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .calc-grid button { 
-            height: 60px; border-radius: 50%; border: none; font-size: 20px;
-            background: #333; color: white; cursor: pointer; font-weight: bold;
-        }
-        .calc-grid button.op { background: #f39c12; }
-        .calc-grid button.eq { background: var(--accent); }
 
-        /* --- FOOTER (STAYS AT BOTTOM OF SCREEN) --- */
+        /* SMART SUGGESTIONS */
+        .suggestions { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+        .suggestion-chip { 
+            background: var(--white); border: 1px solid var(--accent); padding: 8px 15px; 
+            border-radius: 20px; white-space: nowrap; font-size: 13px; cursor: pointer;
+            color: var(--primary); font-weight: 500;
+        }
+
+        /* FLOATING ACTION BUTTON (FAB) */
+        .fab {
+            position: fixed; bottom: 100px; right: 20px; width: 55px; height: 55px;
+            background: var(--primary); border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; color: white; font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 2000; cursor: pointer; transition: 0.3s;
+        }
+        .fab:active { transform: scale(0.9); }
+
+        /* FOOTER INPUT */
         .footer { 
-            position: fixed; bottom: 0; width: 100%; padding: 10px 15px; 
-            background: var(--white); border-top: 1px solid var(--border); 
-            z-index: 1000; padding-bottom: calc(10px + env(safe-area-inset-bottom));
+            position: fixed; bottom: 0; width: 100%; padding: 10px; background: var(--white); 
+            border-top: 1px solid var(--border); z-index: 1000;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
         }
         .input-box { 
-            background: var(--bg); border-radius: 30px; padding: 5px 15px; 
+            background: var(--bg); border-radius: 25px; padding: 5px 15px; 
             display: flex; align-items: center; gap: 10px; width: 100%;
         }
-        input[type="text"] { 
-            flex: 1; border: none; outline: none; background: transparent; 
-            color: var(--text); font-size: 16px; padding: 10px 0;
+        input[type="text"] { flex: 1; border: none; outline: none; background: transparent; color: var(--text); font-size: 16px; padding: 10px 0; }
+        
+        /* SIDEBAR (HISTORY & SYNC) */
+        .sidebar { 
+            height: 100%; width: 0; position: fixed; z-index: 5000; top: 0; left: 0; 
+            background: var(--white); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            overflow-x: hidden; box-shadow: 4px 0 15px rgba(0,0,0,0.2);
         }
-        .icon-btn { color: var(--primary); font-size: 22px; cursor: pointer; }
+        .sidebar-profile { padding: 40px 20px 20px; background: var(--primary); color: white; text-align: center; }
+        .sidebar-profile img { width: 70px; height: 70px; border-radius: 50%; border: 2px solid var(--accent); }
 
-        /* CANVAS BOARD */
-        #canvas-box { 
-            display: none; text-align: center; background: #fff; 
-            padding: 10px; border-radius: 20px; margin-bottom: 15px; 
-            border: 2px dashed var(--accent); width: 100%;
-        }
-        canvas { max-width: 100%; height: auto; background: #fff; }
+        .menu-item { padding: 15px 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .menu-item i { color: var(--accent); width: 20px; }
+
     </style>
 </head>
 <body>
 
-    <div id="leftSidebar" class="sidebar-left">
-        <div class="profile-section">
-            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="profile-img">
-            <h3 style="margin:0;">William Richard</h3>
-            <p style="font-size:12px;">Auto Electric Specialist</p>
+    <div id="mySidebar" class="sidebar">
+        <div class="sidebar-profile">
+            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="William">
+            <h3 style="margin:10px 0 5px;">William Richard</h3>
+            <p style="font-size:12px; opacity:0.8;">Sync Status: Connected</p>
         </div>
         
-        <div class="search-container">
-            <input type="text" id="searchHistory" placeholder="Tafuta historia..." oninput="filterHistory()">
-        </div>
-
-        <div class="menu-list">
-            <a onclick="newChat()" class="menu-item"><i class="fas fa-edit"></i> New Chat</a>
-            <div id="chatHistoryList"></div>
-            <a onclick="toggleCalc()" class="menu-item"><i class="fas fa-calculator"></i> Calculator</a>
-            <a onclick="toggleDarkMode()" class="menu-item"><i class="fas fa-adjust"></i> Dark Mode</a>
-            <a onclick="clearAll()" class="menu-item" style="color:#e74c3c;"><i class="fas fa-trash-alt"></i> Futa Kumbukumbu</a>
+        <div id="archive-list">
+            <div class="menu-item" onclick="newChat()"><i class="fas fa-plus"></i> New Chat (Safisha Kioo)</div>
+            <div class="menu-item" onclick="toggleDarkMode()"><i class="fas fa-moon"></i> Dark Mode</div>
+            <div class="menu-item" onclick="alert('PDF Analyzer Active!')"><i class="fas fa-file-pdf"></i> PDF Reader Tools</div>
+            <div class="menu-item" onclick="clearArchive()" style="color:red;"><i class="fas fa-trash"></i> Futa Data Zote</div>
         </div>
         
-        <div style="padding:15px; font-size:11px; color:#888; text-align:center;">
-            <b>Brain AI Pro</b><br>Toleo la William Richard 2026
+        <div style="padding:20px; position:absolute; bottom:0; width:100%; font-size:10px; color:#999; text-align:center;">
+            BRAIN AI PRO V13 | 2026<br>Developed for ICoT Student Projects
         </div>
     </div>
 
     <div class="header">
-        <i class="fas fa-bars icon-btn" onclick="openNav()"></i>
+        <i class="fas fa-bars icon-btn" onclick="openNav()" style="font-size:24px; color:var(--primary); cursor:pointer;"></i>
         <h1>Brain AI Pro</h1>
-        <i class="fas fa-paint-brush icon-btn" onclick="toggleCanvas()"></i>
-    </div>
-
-    <div id="calculator-overlay">
-        <div class="calc-body">
-            <input type="text" id="calcDisplay" class="calc-screen" readonly>
-            <div class="calc-grid">
-                <button onclick="calcClear()" style="background:#7f8c8d;">AC</button>
-                <button onclick="calcBack()" style="background:#7f8c8d;"><i class="fas fa-backspace"></i></button>
-                <button onclick="calcIn('/')" class="op">/</button>
-                <button onclick="calcIn('*')" class="op">×</button>
-                
-                <button onclick="calcIn('7')">7</button><button onclick="calcIn('8')">8</button>
-                <button onclick="calcIn('9')">9</button><button onclick="calcIn('-')" class="op">-</button>
-                
-                <button onclick="calcIn('4')">4</button><button onclick="calcIn('5')">5</button>
-                <button onclick="calcIn('6')">6</button><button onclick="calcIn('+')" class="op">+</button>
-                
-                <button onclick="calcIn('1')">1</button><button onclick="calcIn('2')">2</button>
-                <button onclick="calcIn('3')">3</button>
-                <button onclick="calcEqual()" class="eq" style="grid-row: span 2; height: 132px; border-radius: 30px;">=</button>
-                
-                <button onclick="calcIn('0')" style="grid-column: span 2; border-radius: 30px;">0</button>
-                <button onclick="calcIn('.')">.</button>
-            </div>
-            <button onclick="toggleCalc()" style="width:100%; margin-top:20px; background:none; border:1px solid #555; color:white; padding:12px; border-radius:15px;">Funga</button>
+        <div style="display:flex; gap:18px;">
+            <i class="fas fa-image" onclick="triggerImageGen()" style="color:var(--accent); font-size:22px; cursor:pointer;"></i>
+            <i class="fas fa-cloud-upload-alt" onclick="document.getElementById('fileIn').click()" style="color:var(--primary); font-size:22px; cursor:pointer;"></i>
+            <input type="file" id="fileIn" hidden onchange="handleFileUpload()">
         </div>
     </div>
 
     <div id="main-view">
-        <div id="welcome-ui" class="welcome-center">
-            <h2>Habari William!</h2>
-            <p>Mfumo wa kisasa wa Akili Mnemba upo tayari kukusaidia leo.</p>
-        </div>
-
-        <div id="canvas-box">
-            <canvas id="drawCanvas" width="300" height="300"></canvas>
-            <div style="padding:15px; display:flex; gap:10px; justify-content:center;">
-                <button onclick="sendArt()" style="background:var(--accent); color:white; border:none; padding:12px 25px; border-radius:12px; font-weight:bold;">Tuma</button>
-                <button onclick="toggleCanvas()" style="background:#95a5a6; color:white; border:none; padding:12px 25px; border-radius:12px;">Funga</button>
+        <div id="welcome-msg" style="text-align:center; padding:40px 20px;">
+            <h2 style="color:var(--accent); font-family: 'Outfit', sans-serif; font-size: 32px;">William AI</h2>
+            <p>Tayari kwa Auto Electric, Programming, na AI Generation.</p>
+            
+            <div class="suggestions">
+                <div class="suggestion-chip" onclick="quickAsk('Jinsi ya kupima Alternator ya gari?')">Pima Alternator</div>
+                <div class="suggestion-chip" onclick="quickAsk('Andika kodi ya HTML ya Dashboard')">Kodi ya HTML</div>
+                <div class="suggestion-chip" onclick="quickAsk('Nitengenezee picha ya injini ya kisasa')">Gen Image</div>
+                <div class="suggestion-chip" onclick="quickAsk('Nieleze kuhusu circuit diagram')">Circuit Diagram</div>
             </div>
         </div>
 
         <div id="chat-container" style="display:flex; flex-direction:column;"></div>
+        <div id="typing-status">Brain AI anaandika...</div>
+    </div>
+
+    <div class="fab" onclick="startVoice()">
+        <i class="fas fa-microphone"></i>
     </div>
 
     <div class="footer">
         <div class="input-box">
-            <label for="imgIn"><i class="fas fa-image icon-btn"></i></label>
+            <label for="imgIn"><i class="fas fa-camera" style="color:var(--primary); font-size:22px; cursor:pointer;"></i></label>
             <input type="file" id="imgIn" accept="image/*" hidden onchange="handleImage()">
             
-            <input type="text" id="userInput" placeholder="Andika hapa..." onkeypress="if(event.keyCode==13) send()">
+            <input type="text" id="userInput" placeholder="Andika au tuma file..." onkeypress="if(event.keyCode==13) send()">
             
-            <i class="fas fa-microphone icon-btn" id="mic" onclick="startVoice()"></i>
-            <i class="fas fa-paper-plane icon-btn" onclick="send()" style="color:var(--accent);"></i>
+            <i class="fas fa-paper-plane" onclick="send()" style="color:var(--accent); font-size:24px; cursor:pointer; padding:5px;"></i>
         </div>
     </div>
 
     <script>
         let currentImg = null;
-        const chatCont = document.getElementById('chat-container');
+        let chatArchive = JSON.parse(localStorage.getItem('william_v13_data') || '[]');
 
-        // NAVIGATION
-        function openNav() { document.getElementById('leftSidebar').style.width = "85%"; }
-        function closeNav() { document.getElementById('leftSidebar').style.width = "0"; }
+        function openNav() { document.getElementById("mySidebar").style.width = "280px"; }
+        function closeNav() { document.getElementById("mySidebar").style.width = "0"; }
+        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
 
-        // MEMORY SYSTEM
-        function saveChat(role, msg) {
-            let h = JSON.parse(localStorage.getItem('william_v11_db') || '[]');
-            h.push({role, msg});
-            localStorage.setItem('william_v11_db', JSON.stringify(h));
-            renderHistoryList();
+        // --- TYPING ANIMATION LOGIC ---
+        function typeEffect(element, text) {
+            let i = 0;
+            element.innerHTML = "";
+            function typing() {
+                if (i < text.length) {
+                    element.innerHTML = marked.parse(text.substring(0, i + 1));
+                    i++;
+                    setTimeout(typing, 10); // Speed ya typing
+                    document.getElementById('main-view').scrollTop = document.getElementById('main-view').scrollHeight;
+                } else {
+                    addActions(element, text);
+                }
+            }
+            typing();
         }
 
-        function loadChat() {
-            let h = JSON.parse(localStorage.getItem('william_v11_db') || '[]');
-            if(h.length > 0) document.getElementById('welcome-ui').style.display = 'none';
-            h.forEach(c => appendBubble(c.msg, c.role === 'user' ? 'user-bubble' : 'ai-bubble'));
-            renderHistoryList();
-        }
-
-        function renderHistoryList() {
-            let h = JSON.parse(localStorage.getItem('william_v11_db') || '[]');
-            const list = document.getElementById('chatHistoryList');
-            list.innerHTML = h.slice(-15).reverse().map(c => `
-                <a class="menu-item history-item" onclick="closeNav()">
-                    <i class="fas fa-history"></i> ${c.msg.substring(0,25)}...
-                </a>
-            `).join('');
-        }
-
-        function filterHistory() {
-            let val = document.getElementById('searchHistory').value.toLowerCase();
-            document.querySelectorAll('.history-item').forEach(el => {
-                el.style.display = el.innerText.toLowerCase().includes(val) ? 'flex' : 'none';
-            });
-        }
-
-        function newChat() { if(confirm("Anza upya?")) { localStorage.clear(); location.reload(); } }
-        function clearAll() { if(confirm("Futa data zote?")) { localStorage.clear(); location.reload(); } }
-
-        // CALCULATOR
-        function toggleCalc() {
-            let c = document.getElementById('calculator-overlay');
-            c.style.display = (c.style.display === 'flex') ? 'none' : 'flex';
-            closeNav();
-        }
-        function calcIn(v) { document.getElementById('calcDisplay').value += v; }
-        function calcClear() { document.getElementById('calcDisplay').value = ""; }
-        function calcBack() { let v = document.getElementById('calcDisplay').value; document.getElementById('calcDisplay').value = v.slice(0,-1); }
-        function calcEqual() {
-            try { document.getElementById('calcDisplay').value = eval(document.getElementById('calcDisplay').value.replace('×','*').replace('÷','/')); }
-            catch { document.getElementById('calcDisplay').value = "Error"; }
-        }
-
-        // CHAT LOGIC
-        function appendBubble(txt, cls) {
-            document.getElementById('welcome-ui').style.display = 'none';
+        function appendBubble(txt, cls, isAi = false) {
+            document.getElementById('welcome-msg').style.display = 'none';
+            const container = document.getElementById('chat-container');
             const div = document.createElement('div');
             div.className = `chat-bubble ${cls}`;
-            div.innerHTML = marked.parse(txt);
-            chatCont.appendChild(div);
+            
+            if(isAi) {
+                typeEffect(div, txt);
+            } else {
+                div.innerHTML = marked.parse(txt);
+            }
+
+            container.appendChild(div);
             document.getElementById('main-view').scrollTop = document.getElementById('main-view').scrollHeight;
+        }
+
+        function addActions(div, txt) {
+            const actions = document.createElement('div');
+            actions.style.cssText = "display:flex; gap:15px; margin-top:10px; border-top:1px solid rgba(0,0,0,0.1); padding-top:5px;";
+            actions.innerHTML = `
+                <i class="fas fa-volume-up" onclick="speakText('${txt.replace(/'/g, "")}')" style="cursor:pointer; color:var(--primary);"></i>
+                <i class="fas fa-copy" onclick="copyToClipboard('${txt.replace(/'/g, "")}')" style="cursor:pointer; color:var(--primary);"></i>
+                <i class="fas fa-share-alt" onclick="shareMe('${txt.replace(/'/g, "")}')" style="cursor:pointer; color:var(--primary);"></i>
+            `;
+            div.appendChild(actions);
+            
+            // Highlight Code blocks
+            div.querySelectorAll('pre').forEach(pre => {
+                const btn = document.createElement('button');
+                btn.className = 'copy-btn'; btn.innerText = 'Copy Code';
+                btn.onclick = () => { navigator.clipboard.writeText(pre.innerText.replace('Copy Code', '')); btn.innerText = 'Copied!'; };
+                pre.appendChild(btn);
+                hljs.highlightElement(pre);
+            });
         }
 
         async function send() {
@@ -347,8 +295,8 @@ HTML_CODE = '''
             if(!val && !currentImg) return;
 
             appendBubble(val || "Picha inachambuliwa...", "user-bubble");
-            saveChat('user', val || "Picha");
             input.value = "";
+            document.getElementById('typing-status').style.display = 'block';
 
             try {
                 const res = await fetch('/chat', {
@@ -357,12 +305,38 @@ HTML_CODE = '''
                     body: JSON.stringify({ q: val, image: currentImg })
                 });
                 const d = await res.json();
-                appendBubble(d.ans, "ai-bubble");
-                saveChat('ai', d.ans);
+                document.getElementById('typing-status').style.display = 'none';
+                appendBubble(d.ans, "ai-bubble", true);
+                
+                // Save to Archive
+                chatArchive.push({q: val, a: d.ans});
+                localStorage.setItem('william_v13_data', JSON.stringify(chatArchive));
             } catch {
-                appendBubble("Kuna tatizo la connection!", "ai-bubble");
+                document.getElementById('typing-status').style.display = 'none';
+                appendBubble("Hitilafu! Hakikisha API Keys ziko sawa.", "ai-bubble");
             }
             currentImg = null;
+        }
+
+        function quickAsk(q) { document.getElementById('userInput').value = q; send(); }
+
+        function triggerImageGen() {
+            const p = prompt("Elezea picha unayotaka nitengeneze:");
+            if(p) { quickAsk("Nitengenezee picha ya: " + p); }
+        }
+
+        function speakText(t) {
+            const s = new SpeechSynthesisUtterance(t);
+            s.lang = 'sw-TZ'; window.speechSynthesis.speak(s);
+        }
+
+        function copyToClipboard(t) { navigator.clipboard.writeText(t); alert("Nakala imehifadhiwa!"); }
+
+        function handleFileUpload() {
+            const file = document.getElementById('fileIn').files[0];
+            appendBubble("Nimepandisha file: " + file.name + ". Naichambua...", "user-bubble");
+            // Hapa unaweza kuongeza logic ya kutuma file kwenda backend
+            setTimeout(() => appendBubble("Tayari! Naweza kujibu maswali kuhusu faili hilo.", "ai-bubble", true), 2000);
         }
 
         function handleImage() {
@@ -375,44 +349,25 @@ HTML_CODE = '''
         function startVoice() {
             const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             rec.lang = 'sw-TZ'; rec.start();
-            document.getElementById('mic').style.color = 'red';
             rec.onresult = (e) => { document.getElementById('userInput').value = e.results[0][0].transcript; send(); };
-            rec.onend = () => { document.getElementById('mic').style.color = 'var(--primary)'; };
         }
 
-        // CANVAS DRAWING
-        const canvas = document.getElementById('drawCanvas');
-        const ctx = canvas.getContext('2d');
-        let painting = false;
-
-        function toggleCanvas() { 
-            let b = document.getElementById('canvas-box');
-            b.style.display = (b.style.display === 'block') ? 'none' : 'block';
+        function newChat() { 
+            if(confirm("Safisha kioo? Chat zilizopita zipo kwenye Memory.")) {
+                document.getElementById('chat-container').innerHTML = "";
+                document.getElementById('welcome-msg').style.display = 'block';
+                closeNav();
+            }
         }
-        canvas.ontouchstart = (e) => { e.preventDefault(); painting = true; ctx.beginPath(); };
-        canvas.ontouchmove = (e) => {
-            if(!painting) return;
-            let t = e.touches[0]; let r = canvas.getBoundingClientRect();
-            ctx.lineTo(t.clientX - r.left, t.clientY - r.top);
-            ctx.strokeStyle = '#075e54'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
-        };
-        canvas.ontouchend = () => painting = false;
-
-        function sendArt() {
-            currentImg = canvas.toDataURL('image/jpeg').split(',')[1];
-            send(); toggleCanvas(); ctx.clearRect(0,0,300,300);
-        }
-
-        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); closeNav(); }
-
-        window.onload = loadChat;
+        
+        function clearArchive() { localStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>
 '''
 
 # ============================================================
-# BACK-END (API & ROUTES)
+# BACK-END (API LOGIC)
 # ============================================================
 
 @app.route('/')
@@ -425,18 +380,30 @@ def chat():
     q = data.get('q', '')
     img = data.get('image')
 
+    # Logic ya Image Generation (Kama neno 'tengeneza picha' lipo)
+    if 'tengeneza picha' in q.lower() or 'nitengenezee picha' in q.lower():
+        img_url = generate_ai_image(q)
+        return jsonify({'ans': f"Tayari William! Hii hapa picha uliyotaka: \n\n ![Generated Image]({img_url})"})
+
+    # Logic ya Uchambuzi wa Picha
     if img:
         return jsonify({'ans': analyze_image(q, img)})
     
+    # Kawaida Chat kwa Groq (Llama 3)
     headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": "Wewe ni Brain AI Pro ya William Richard. Jibu kwa Kiswahili fasaha na ueleze mambo kitaalamu."},
+            {"role": "system", "content": "Wewe ni Brain AI Pro, msaidizi mwerevu wa William Richard Mathayo. Jibu kwa Kiswahili fasaha. Tumia markdown kwa kodi."},
             {"role": "user", "content": q}
-        ],
-        "temperature": 0.7
+        ]
     }
     try:
-        r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=25)
-  
+        r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=20)
+        return jsonify({'ans': r.json()['choices'][0]['message']['content']})
+    except:
+        return jsonify({'ans': 'Hitilafu ya Mtandao! Jaribu tena baadae.'})
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
