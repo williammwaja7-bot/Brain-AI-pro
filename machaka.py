@@ -1,409 +1,554 @@
+# ==============================================================================
+# PROJECT: BRAIN AI PRO - THE ULTIMATE MONSTER EDITION (V16)
+# DEVELOPER: WILLIAM RICHARD MATHAYO (ICOT STUDENT & TECHNICIAN)
+# LOCATION: DAR ES SALAAM, TANZANIA
+# PURPOSE: ADVANCED AI ASSISTANT FOR AUTO-ELECTRIC & PROGRAMMING
+# ==============================================================================
+# HII KODI IMEANDALIWA KWA AJILI YA WILLIAM PEKEE. USIPUNGUZE MSTARI HATA MMOJA.
+# INAJUMUISHA: AI CHAT, IMAGE ANALYZER, IMAGE GENERATOR, CALCULATOR, 
+# ARCHIVE SYSTEM, VOICE RECOGNITION, NA UI YA KISASA ZAIDI.
+# ==============================================================================
+
 import os
-import warnings
-import requests
-import base64
 import io
 import json
 import time
+import base64
+import requests
+import warnings
+import datetime
 from flask import Flask, render_template_string, request, jsonify
-import google.generativeai as genai
 from PIL import Image
-import PyPDF2  # Kwa ajili ya kusoma mafile ya PDF
+import google.generativeai as genai
 
-# ============================================================
-# BRAIN AI PRO V13 - THE ULTIMATE MONSTER EDITION
-# DEVELOPED BY WILLIAM RICHARD MATHAYO
-# FEATURES: PDF UPLOAD, IMAGE GEN, TYPING EFFECT, CLOUD SYNC
-# ============================================================
-
+# Kuzima maonyo yasiyo na lazima kule Render
 warnings.filterwarnings("ignore")
+
+# Kuanzisha Flask App
 app = Flask(__name__)
 
-# CONFIGURATION ZA API (ZINGATIA KUWEKA RENDER ENV)
-GEMINI_KEY = os.environ.get("GEMINI_KEY")
-GROQ_KEY = os.environ.get("GROQ_KEY")
-OPENAI_KEY = os.environ.get("OPENAI_KEY") # Kwa Image Generation (DALL-E)
+# ==============================================================================
+# SEHEMU YA MAUJANJA YA API (CONFIGURATION SECTION)
+# ==============================================================================
+# Hakikisha hizi Keys zipo kwenye Environment Variables za Render
+GEMINI_API_KEY = os.environ.get("GEMINI_KEY")
+GROQ_API_KEY = os.environ.get("GROQ_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_KEY")
 
-if GEMINI_KEY:
-    genai.configure(api_key=GEMINI_KEY)
+# Configuration ya Google Gemini kwa ajili ya Vision (Picha)
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    print(">>> Gemini Engine Status: ACTIVE")
+else:
+    print(">>> Gemini Engine Status: MISSING KEY")
 
-def analyze_image(prompt, image_base64):
-    """Kuchakata picha kwa Gemini Flash"""
+# ==============================================================================
+# LOGIC ZA NDANI (BACKEND FUNCTIONS)
+# ==============================================================================
+
+def get_current_timestamp():
+    """Inarudisha muda kamili wa sasa wa Tanzania"""
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def process_vision_ai(user_prompt, base64_image):
+    """
+    Kazi: Kuchambua picha inayotumwa na William.
+    Inatumia Gemini-1.5-Flash kwa ufanisi wa haraka.
+    """
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        image_data = base64.b64decode(image_base64)
-        image = Image.open(io.BytesIO(image_data))
-        p = f"Wewe ni Brain AI Pro ya William Richard. Jibu kwa Kiswahili: {prompt if prompt else 'Nieleze picha hii'}"
-        return model.generate_content([p, image]).text
-    except Exception as e:
-        return f"Hitilafu ya Picha: {str(e)}"
+        vision_model = genai.GenerativeModel('gemini-1.5-flash')
+        decoded_image = base64.b64decode(base64_image)
+        img_buffer = Image.open(io.BytesIO(decoded_image))
+        
+        system_instruction = (
+            "Wewe ni Brain AI Pro, msaidizi mwerevu wa William Richard. "
+            "Chambua picha hii kwa kina na utoe maelezo kwa Kiswahili fasaha. "
+            f"Prompt ya mtumiaji: {user_prompt if user_prompt else 'Nieleze picha hii'}"
+        )
+        
+        response = vision_model.generate_content([system_instruction, img_buffer])
+        return response.text
+    except Exception as error:
+        return f"Oooh William! Kuna hitilafu kwenye Vision Engine: {str(error)}"
 
-def generate_ai_image(prompt):
-    """Kutengeneza picha mpya kwa DALL-E (OpenAI)"""
+def trigger_dalle_generation(prompt_text):
+    """
+    Kazi: Kutengeneza picha mpya kabisa (Text-to-Image).
+    Inatumia OpenAI DALL-E 3 Model.
+    """
     try:
-        headers = {"Authorization": f"Bearer {OPENAI_KEY}", "Content-Type": "application/json"}
-        payload = {"model": "dall-e-3", "prompt": prompt, "n": 1, "size": "1024x1024"}
-        r = requests.post("https://api.openai.com/v1/images/generations", headers=headers, json=payload)
-        return r.json()['data'][0]['url']
-    except:
-        return "https://via.placeholder.com/500?text=Weka+OpenAI+Key+Kwanza"
+        api_url = "https://api.openai.com/v1/images/generations"
+        auth_header = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        data_payload = {
+            "model": "dall-e-3",
+            "prompt": prompt_text,
+            "n": 1,
+            "size": "1024x1024"
+        }
+        api_res = requests.post(api_url, headers=auth_header, json=data_payload, timeout=40)
+        return api_res.json()['data'][0]['url']
+    except Exception:
+        return "https://via.placeholder.com/500?text=Sanidi+OpenAI+Key+Kwanza"
 
-# ============================================================
-# FRONT-END (HTML, CSS, JS) - VERSION 13 (EXTRA LONG)
-# ============================================================
+# ==============================================================================
+# FRONT-END SECTION (HTML, CSS, JAVASCRIPT) - THE MONSTER UI
+# ==============================================================================
+# Hapa ndipo kodi ilipo ndefu zaidi ili kurembesha mfumo wako.
+# ==============================================================================
 
-HTML_CODE = '''
+MONSTER_HTML = '''
 <!DOCTYPE html>
 <html lang="sw">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Brain AI Pro - William Richard</title>
+    <title>Brain AI Pro - William Richard Edition</title>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
     <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        :root { 
-            --primary: #075e54; --accent: #2ecc71; --bg: #f0f2f5; 
-            --white: #ffffff; --text: #1c1e21; --border: #ced4da; 
-            --user-bubble: #dcf8c6; --ai-bubble: #ffffff;
-        }
-        body.dark-mode { 
-            --bg: #0b141a; --white: #111b21; --text: #e9edef; 
-            --border: #222d34; --user-bubble: #005c4b; --ai-bubble: #202c33;
-        }
-        body { 
-            background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; 
-            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; 
+        /* CSS RESET & VARIABLES */
+        :root {
+            --whatsapp-green: #075e54;
+            --light-green: #2ecc71;
+            --user-bg: #dcf8c6;
+            --ai-bg: #ffffff;
+            --body-bg: #f0f2f5;
+            --dark-text: #1c1e21;
+            --border-color: #ced4da;
+            --sidebar-width: 300px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* HEADER */
-        .header { 
-            height: 70px; padding: 0 15px; display: flex; align-items: center; 
-            justify-content: space-between; background: var(--white); 
-            border-bottom: 3px solid var(--accent); position: fixed; top: 0; width: 100%; z-index: 1000; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        .header h1 { font-size: 22px; margin: 0; color: var(--primary); font-weight: 600; }
 
-        /* MAIN CHAT AREA */
-        #main-view { 
-            flex: 1; margin-top: 70px; margin-bottom: 90px; padding: 15px; 
-            overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+        body.dark-mode {
+            --body-bg: #0b141a;
+            --ai-bg: #202c33;
+            --user-bg: #005c4b;
+            --dark-text: #e9edef;
+            --border-color: #222d34;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--body-bg);
+            color: var(--dark-text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background 0.5s;
+        }
+
+        /* NAVIGATION BAR */
+        .navbar {
+            height: 70px;
+            background: var(--ai-bg);
+            border-bottom: 4px solid var(--light-green);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .navbar h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--whatsapp-green);
+            letter-spacing: -0.5px;
+        }
+
+        .nav-icons {
+            display: flex;
+            gap: 20px;
+            font-size: 22px;
+            color: var(--whatsapp-green);
+        }
+
+        .nav-icons i { cursor: pointer; transition: 0.2s; }
+        .nav-icons i:active { transform: scale(0.8); }
+
+        /* SIDEBAR / HISTORY SYSTEM */
+        .sidebar {
+            position: fixed;
+            left: calc(-1 * var(--sidebar-width));
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100%;
+            background: var(--ai-bg);
+            z-index: 2000;
+            transition: var(--transition);
+            box-shadow: 5px 0 20px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.active { left: 0; }
+
+        .sidebar-header {
+            padding: 40px 20px 20px;
+            background: var(--whatsapp-green);
+            color: white;
+        }
+
+        .history-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .history-card {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: 0.2s;
+        }
+
+        .history-card:hover { background: var(--body-bg); }
+
+        /* CHAT WINDOW */
+        #chat-scroller {
+            flex: 1;
+            margin-top: 70px;
+            margin-bottom: 90px;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
             scroll-behavior: smooth;
         }
 
-        /* TYPING EFFECT INDICATOR */
-        #typing-status { 
-            display: none; padding: 10px; font-style: italic; font-size: 13px; color: var(--accent);
+        .chat-row {
+            display: flex;
+            width: 100%;
+            animation: slideUp 0.4s ease;
         }
 
-        .chat-bubble { 
-            max-width: 88%; padding: 14px; border-radius: 18px; position: relative;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 15px; line-height: 1.6;
-            animation: fadeIn 0.4s ease;
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } }
-        
-        .user-bubble { align-self: flex-end; background: var(--user-bubble); border-bottom-right-radius: 2px; }
-        .ai-bubble { align-self: flex-start; background: var(--ai-bubble); border-bottom-left-radius: 2px; border-left: 5px solid var(--accent); }
 
-        /* CODE BOX STYLING */
-        pre { 
-            background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 10px; 
-            overflow-x: auto; position: relative; margin: 10px 0; font-family: 'JetBrains Mono', monospace;
+        .bubble {
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
+
+        .user-bubble {
+            background: var(--user-bubble);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+            color: #000;
+        }
+
+        .ai-bubble {
+            background: var(--ai-bg);
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            border-left: 6px solid var(--light-green);
+        }
+
+        /* CODE BLOCK STYLING */
+        pre {
+            background: #1e1e1e !important;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 12px;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        code { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+
         .copy-btn {
-            position: absolute; top: 8px; right: 8px; background: #333; color: var(--accent);
-            border: 1px solid var(--accent); padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--light-green);
+            color: var(--light-green);
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
         }
 
-        /* SMART SUGGESTIONS */
-        .suggestions { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
-        .suggestion-chip { 
-            background: var(--white); border: 1px solid var(--accent); padding: 8px 15px; 
-            border-radius: 20px; white-space: nowrap; font-size: 13px; cursor: pointer;
-            color: var(--primary); font-weight: 500;
+        /* INPUT AREA AREA - FIXED SEND BUTTON UI */
+        .footer-input {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            padding: 15px;
+            background: var(--ai-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding-bottom: calc(15px + env(safe-area-inset-bottom));
         }
 
-        /* FLOATING ACTION BUTTON (FAB) */
-        .fab {
-            position: fixed; bottom: 100px; right: 20px; width: 55px; height: 55px;
-            background: var(--primary); border-radius: 50%; display: flex; align-items: center;
-            justify-content: center; color: white; font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 2000; cursor: pointer; transition: 0.3s;
+        .input-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--body-bg);
+            border-radius: 30px;
+            padding: 5px 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-color);
         }
-        .fab:active { transform: scale(0.9); }
 
-        /* FOOTER INPUT */
-        .footer { 
-            position: fixed; bottom: 0; width: 100%; padding: 10px; background: var(--white); 
-            border-top: 1px solid var(--border); z-index: 1000;
-            padding-bottom: calc(10px + env(safe-area-inset-bottom));
+        input[type="text"] {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 12px 5px;
+            font-size: 16px;
+            color: var(--dark-text);
         }
-        .input-box { 
-            background: var(--bg); border-radius: 25px; padding: 5px 15px; 
-            display: flex; align-items: center; gap: 10px; width: 100%;
-        }
-        input[type="text"] { flex: 1; border: none; outline: none; background: transparent; color: var(--text); font-size: 16px; padding: 10px 0; }
-        
-        /* SIDEBAR (HISTORY & SYNC) */
-        .sidebar { 
-            height: 100%; width: 0; position: fixed; z-index: 5000; top: 0; left: 0; 
-            background: var(--white); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            overflow-x: hidden; box-shadow: 4px 0 15px rgba(0,0,0,0.2);
-        }
-        .sidebar-profile { padding: 40px 20px 20px; background: var(--primary); color: white; text-align: center; }
-        .sidebar-profile img { width: 70px; height: 70px; border-radius: 50%; border: 2px solid var(--accent); }
 
-        .menu-item { padding: 15px 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border); cursor: pointer; }
-        .menu-item i { color: var(--accent); width: 20px; }
+        .action-icons {
+            display: flex;
+            gap: 15px;
+            font-size: 22px;
+            color: var(--whatsapp-green);
+        }
+
+        #send-trigger {
+            font-size: 28px;
+            color: var(--light-green);
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 5px;
+        }
+
+        /* FLOATING CALCULATOR */
+        #calc-ui {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 300px;
+            background: var(--ai-bg);
+            border-radius: 20px;
+            padding: 20px;
+            z-index: 3000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            transition: 0.3s;
+        }
+
+        #calc-ui.show { transform: translate(-50%, -50%) scale(1); }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .calc-btn {
+            padding: 15px;
+            background: var(--body-bg);
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .calc-btn.op { background: var(--light-green); color: white; }
+
+        /* WELCOME SCREEN */
+        #welcome-hero {
+            text-align: center;
+            padding: 60px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hero-icon {
+            width: 100px;
+            height: 100px;
+            background: var(--whatsapp-green);
+            color: white;
+            border-radius: 30%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(7, 94, 84, 0.3);
+        }
+
+        /* TYPING ANIMATION */
+        .typing-dots {
+            display: none;
+            padding: 15px;
+            color: var(--light-green);
+            font-weight: bold;
+            font-style: italic;
+        }
 
     </style>
 </head>
 <body>
 
-    <div id="mySidebar" class="sidebar">
-        <div class="sidebar-profile">
-            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="William">
-            <h3 style="margin:10px 0 5px;">William Richard</h3>
-            <p style="font-size:12px; opacity:0.8;">Sync Status: Connected</p>
+    <div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1500;" onclick="closeAll()"></div>
+
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2>Brain Archive</h2>
+            <p>William Richard Mathayo</p>
         </div>
-        
-        <div id="archive-list">
-            <div class="menu-item" onclick="newChat()"><i class="fas fa-plus"></i> New Chat (Safisha Kioo)</div>
-            <div class="menu-item" onclick="toggleDarkMode()"><i class="fas fa-moon"></i> Dark Mode</div>
-            <div class="menu-item" onclick="alert('PDF Analyzer Active!')"><i class="fas fa-file-pdf"></i> PDF Reader Tools</div>
-            <div class="menu-item" onclick="clearArchive()" style="color:red;"><i class="fas fa-trash"></i> Futa Data Zote</div>
-        </div>
-        
-        <div style="padding:20px; position:absolute; bottom:0; width:100%; font-size:10px; color:#999; text-align:center;">
-            BRAIN AI PRO V13 | 2026<br>Developed for ICoT Student Projects
+        <div class="history-container" id="history-box">
+            </div>
+        <div style="padding:20px;">
+            <button onclick="clearHistory()" style="width:100%; padding:12px; background:#ff4757; border:none; color:white; border-radius:10px; font-weight:bold;">
+                <i class="fas fa-trash"></i> Futa Data Zote
+            </button>
         </div>
     </div>
 
-    <div class="header">
-        <i class="fas fa-bars icon-btn" onclick="openNav()" style="font-size:24px; color:var(--primary); cursor:pointer;"></i>
-        <h1>Brain AI Pro</h1>
-        <div style="display:flex; gap:18px;">
-            <i class="fas fa-image" onclick="triggerImageGen()" style="color:var(--accent); font-size:22px; cursor:pointer;"></i>
-            <i class="fas fa-cloud-upload-alt" onclick="document.getElementById('fileIn').click()" style="color:var(--primary); font-size:22px; cursor:pointer;"></i>
-            <input type="file" id="fileIn" hidden onchange="handleFileUpload()">
+    <div id="calc-ui">
+        <h3 style="text-align:center;">Quick Calc</h3>
+        <input type="text" id="calc-display" readonly style="width:100%; padding:15px; margin-top:10px; border:none; background:#eee; border-radius:10px; text-align:right; font-size:24px;">
+        <div class="calc-grid">
+            <button class="calc-btn" onclick="calcInput('7')">7</button>
+            <button class="calc-btn" onclick="calcInput('8')">8</button>
+            <button class="calc-btn" onclick="calcInput('9')">9</button>
+            <button class="calc-btn op" onclick="calcInput('/')">/</button>
+            <button class="calc-btn" onclick="calcInput('4')">4</button>
+            <button class="calc-btn" onclick="calcInput('5')">5</button>
+            <button class="calc-btn" onclick="calcInput('6')">6</button>
+            <button class="calc-btn op" onclick="calcInput('*')">*</button>
+            <button class="calc-btn" onclick="calcInput('1')">1</button>
+            <button class="calc-btn" onclick="calcInput('2')">2</button>
+            <button class="calc-btn" onclick="calcInput('3')">3</button>
+            <button class="calc-btn op" onclick="calcInput('-')">-</button>
+            <button class="calc-btn" onclick="calcClear()" style="background:#ff4757; color:white;">C</button>
+            <button class="calc-btn" onclick="calcInput('0')">0</button>
+            <button class="calc-btn" onclick="calcSolve()" style="background:var(--light-green); color:white;">=</button>
+            <button class="calc-btn op" onclick="calcInput('+')">+</button>
+        </div>
+        <button onclick="toggleCalc()" style="width:100%; margin-top:15px; padding:10px; border:none; border-radius:10px;">Funga</button>
+    </div>
+
+    <div class="navbar">
+        <div class="brand">
+            <i class="fas fa-bars" onclick="toggleSidebar()" style="font-size:24px; cursor:pointer;"></i>
+            <h1>Brain AI Pro</h1>
+        </div>
+        <div class="nav-icons">
+            <i class="fas fa-calculator" onclick="toggleCalc()"></i>
+            <i class="fas fa-moon" onclick="toggleDarkMode()"></i>
+            <i class="fas fa-save" onclick="manualSave()"></i>
         </div>
     </div>
 
-    <div id="main-view">
-        <div id="welcome-msg" style="text-align:center; padding:40px 20px;">
-            <h2 style="color:var(--accent); font-family: 'Outfit', sans-serif; font-size: 32px;">William AI</h2>
-            <p>Tayari kwa Auto Electric, Programming, na AI Generation.</p>
+    <div id="chat-scroller">
+        <div id="welcome-hero">
+            <div class="hero-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <h2 style="font-size: 28px;">Habari, William Richard!</h2>
+            <p style="opacity: 0.7; margin-top: 10px;">Mfumo wako wa AI uko tayari. Uliza chochote kuhusu Auto-Electric, Programming, au tengeneza picha.</p>
             
-            <div class="suggestions">
-                <div class="suggestion-chip" onclick="quickAsk('Jinsi ya kupima Alternator ya gari?')">Pima Alternator</div>
-                <div class="suggestion-chip" onclick="quickAsk('Andika kodi ya HTML ya Dashboard')">Kodi ya HTML</div>
-                <div class="suggestion-chip" onclick="quickAsk('Nitengenezee picha ya injini ya kisasa')">Gen Image</div>
-                <div class="suggestion-chip" onclick="quickAsk('Nieleze kuhusu circuit diagram')">Circuit Diagram</div>
+            <div style="display:flex; gap:10px; margin-top:25px; overflow-x:auto; width:100%; padding:10px;">
+                <button onclick="quickAsk('Jinsi ya kupima sensor ya gari?')" style="padding:10px 20px; border-radius:20px; border:1px solid var(--light-green); background:white; white-space:nowrap;">Pima Sensor</button>
+                <button onclick="quickAsk('Andika kodi ya HTML ya Login Page')" style="padding:10px 20px; border-radius:20px; border:1px solid var(--light-green); background:white; white-space:nowrap;">Kodi ya HTML</button>
+                <button onclick="quickAsk('Nitengenezee picha ya injini ya kisasa')" style="padding:10px 20px; border-radius:20px; border:1px solid var(--light-green); background:white; white-space:nowrap;">Tengeneza Picha</button>
             </div>
         </div>
-
-        <div id="chat-container" style="display:flex; flex-direction:column;"></div>
-        <div id="typing-status">Brain AI anaandika...</div>
+        <div id="chat-area"></div>
+        <div id="typing-ui" class="typing-dots">Brain AI anaandika kwa ustadi...</div>
     </div>
 
-    <div class="fab" onclick="startVoice()">
-        <i class="fas fa-microphone"></i>
-    </div>
-
-    <div class="footer">
-        <div class="input-box">
-            <label for="imgIn"><i class="fas fa-camera" style="color:var(--primary); font-size:22px; cursor:pointer;"></i></label>
-            <input type="file" id="imgIn" accept="image/*" hidden onchange="handleImage()">
+    <div class="footer-input">
+        <div class="input-container">
+            <div class="action-icons">
+                <label for="picha-upload"><i class="fas fa-camera"></i></label>
+                <input type="file" id="picha-upload" accept="image/*" hidden onchange="uploadImage()">
+                
+                <label for="file-upload"><i class="fas fa-paperclip"></i></label>
+                <input type="file" id="file-upload" hidden onchange="handleFile()">
+            </div>
             
-            <input type="text" id="userInput" placeholder="Andika au tuma file..." onkeypress="if(event.keyCode==13) send()">
+            <input type="text" id="user-msg" placeholder="Andika ujumbe hapa William..." onkeypress="handleKey(event)">
             
-            <i class="fas fa-paper-plane" onclick="send()" style="color:var(--accent); font-size:24px; cursor:pointer; padding:5px;"></i>
+            <div class="action-icons">
+                <i class="fas fa-microphone" id="voice-btn" onclick="startVoice()"></i>
+                <i class="fas fa-paper-plane" id="send-trigger" onclick="processMessage()"></i>
+            </div>
         </div>
     </div>
 
     <script>
-        let currentImg = null;
-        let chatArchive = JSON.parse(localStorage.getItem('william_v13_data') || '[]');
+        let currentImageBase64 = null;
+        let brainArchive = JSON.parse(localStorage.getItem('brain_v16_history') || '[]');
 
-        function openNav() { document.getElementById("mySidebar").style.width = "280px"; }
-        function closeNav() { document.getElementById("mySidebar").style.width = "0"; }
-        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
-
-        // --- TYPING ANIMATION LOGIC ---
-        function typeEffect(element, text) {
-            let i = 0;
-            element.innerHTML = "";
-            function typing() {
-                if (i < text.length) {
-                    element.innerHTML = marked.parse(text.substring(0, i + 1));
-                    i++;
-                    setTimeout(typing, 10); // Speed ya typing
-                    document.getElementById('main-view').scrollTop = document.getElementById('main-view').scrollHeight;
-                } else {
-                    addActions(element, text);
-                }
-            }
-            typing();
+        // UI CONTROLS
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('active'); 
+            document.getElementById('overlay').style.display = document.getElementById('sidebar').classList.contains('active') ? 'block' : 'none';
         }
 
-        function appendBubble(txt, cls, isAi = false) {
-            document.getElementById('welcome-msg').style.display = 'none';
-            const container = document.getElementById('chat-container');
-            const div = document.createElement('div');
-            div.className = `chat-bubble ${cls}`;
+        function closeAll() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('calc-ui').classList.remove('show');
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+        function toggleCalc() { 
+            document.getElementById('calc-ui').classList.toggle('show');
+            document.getElementById('overlay').style.display = document.getElementById('calc-ui').classList.contains('show') ? 'block' : 'none';
+        }
+
+        // CHAT LOGIC
+        function appendMessage(text, type, isAi = false) {
+            document.getElementById('welcome-hero').style.display = 'none';
+            const area = document.getElementById('chat-area');
+            const row = document.createElement('div');
+            row.className = 'chat-row';
+            
+            const bubble = document.createElement('div');
+            bubble.className = `bubble ${type}-bubble`;
             
             if(isAi) {
-                typeEffect(div, txt);
-            } else {
-                div.innerHTML = marked.parse(txt);
-            }
-
-            container.appendChild(div);
-            document.getElementById('main-view').scrollTop = document.getElementById('main-view').scrollHeight;
-        }
-
-        function addActions(div, txt) {
-            const actions = document.createElement('div');
-            actions.style.cssText = "display:flex; gap:15px; margin-top:10px; border-top:1px solid rgba(0,0,0,0.1); padding-top:5px;";
-            actions.innerHTML = `
-                <i class="fas fa-volume-up" onclick="speakText('${txt.replace(/'/g, "")}')" style="cursor:pointer; color:var(--primary);"></i>
-                <i class="fas fa-copy" onclick="copyToClipboard('${txt.replace(/'/g, "")}')" style="cursor:pointer; color:var(--primary);"></i>
-                <i class="fas fa-share-alt" onclick="shareMe('${txt.replace(/'/g, "")}')" style="cursor:pointer; color:var(--primary);"></i>
-            `;
-            div.appendChild(actions);
-            
-            // Highlight Code blocks
-            div.querySelectorAll('pre').forEach(pre => {
-                const btn = document.createElement('button');
-                btn.className = 'copy-btn'; btn.innerText = 'Copy Code';
-                btn.onclick = () => { navigator.clipboard.writeText(pre.innerText.replace('Copy Code', '')); btn.innerText = 'Copied!'; };
-                pre.appendChild(btn);
-                hljs.highlightElement(pre);
-            });
-        }
-
-        async function send() {
-            const input = document.getElementById('userInput');
-            const val = input.value.trim();
-            if(!val && !currentImg) return;
-
-            appendBubble(val || "Picha inachambuliwa...", "user-bubble");
-            input.value = "";
-            document.getElementById('typing-status').style.display = 'block';
-
-            try {
-                const res = await fetch('/chat', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ q: val, image: currentImg })
-                });
-                const d = await res.json();
-                document.getElementById('typing-status').style.display = 'none';
-                appendBubble(d.ans, "ai-bubble", true);
-                
-                // Save to Archive
-                chatArchive.push({q: val, a: d.ans});
-                localStorage.setItem('william_v13_data', JSON.stringify(chatArchive));
-            } catch {
-                document.getElementById('typing-status').style.display = 'none';
-                appendBubble("Hitilafu! Hakikisha API Keys ziko sawa.", "ai-bubble");
-            }
-            currentImg = null;
-        }
-
-        function quickAsk(q) { document.getElementById('userInput').value = q; send(); }
-
-        function triggerImageGen() {
-            const p = prompt("Elezea picha unayotaka nitengeneze:");
-            if(p) { quickAsk("Nitengenezee picha ya: " + p); }
-        }
-
-        function speakText(t) {
-            const s = new SpeechSynthesisUtterance(t);
-            s.lang = 'sw-TZ'; window.speechSynthesis.speak(s);
-        }
-
-        function copyToClipboard(t) { navigator.clipboard.writeText(t); alert("Nakala imehifadhiwa!"); }
-
-        function handleFileUpload() {
-            const file = document.getElementById('fileIn').files[0];
-            appendBubble("Nimepandisha file: " + file.name + ". Naichambua...", "user-bubble");
-            // Hapa unaweza kuongeza logic ya kutuma file kwenda backend
-            setTimeout(() => appendBubble("Tayari! Naweza kujibu maswali kuhusu faili hilo.", "ai-bubble", true), 2000);
-        }
-
-        function handleImage() {
-            const file = document.getElementById('imgIn').files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => { currentImg = e.target.result.split(',')[1]; send(); };
-            reader.readAsDataURL(file);
-        }
-
-        function startVoice() {
-            const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            rec.lang = 'sw-TZ'; rec.start();
-            rec.onresult = (e) => { document.getElementById('userInput').value = e.results[0][0].transcript; send(); };
-        }
-
-        function newChat() { 
-            if(confirm("Safisha kioo? Chat zilizopita zipo kwenye Memory.")) {
-                document.getElementById('chat-container').innerHTML = "";
-                document.getElementById('welcome-msg').style.display = 'block';
-                closeNav();
-            }
-        }
-        
-        function clearArchive() { localStorage.clear(); location.reload(); }
-    </script>
-</body>
-</html>
-'''
-
-# ============================================================
-# BACK-END (API LOGIC)
-# ============================================================
-
-@app.route('/')
-def home():
-    return render_template_string(HTML_CODE)
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    data = request.json
-    q = data.get('q', '')
-    img = data.get('image')
-
-    # Logic ya Image Generation (Kama neno 'tengeneza picha' lipo)
-    if 'tengeneza picha' in q.lower() or 'nitengenezee picha' in q.lower():
-        img_url = generate_ai_image(q)
-        return jsonify({'ans': f"Tayari William! Hii hapa picha uliyotaka: \n\n ![Generated Image]({img_url})"})
-
-    # Logic ya Uchambuzi wa Picha
-    if img:
-        return jsonify({'ans': analyze_image(q, img)})
-    
-    # Kawaida Chat kwa Groq (Llama 3)
-    headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
-    payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {"role": "system", "content": "Wewe ni Brain AI Pro, msaidizi mwerevu wa William Richard Mathayo. Jibu kwa Kiswahili fasaha. Tumia markdown kwa kodi."},
-            {"role": "user", "content": q}
-        ]
-    }
-    try:
-        r = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=20)
-        return jsonify({'ans': r.json()['choices'][0]['message']['content']})
-    except:
-        return jsonify({'ans': 'Hitilafu ya Mtandao! Jaribu tena baadae.'})
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+                    
