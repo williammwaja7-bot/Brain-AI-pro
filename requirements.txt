@@ -1,7 +1,4 @@
 Flask
 requests
 google-generativeai
-Pillow
-PyPDF2
-python-dotenv
-gunicorn
+reportlab
